@@ -25,3 +25,31 @@
                 (ok "Password updated successfully"))
             (err "Invalid old password"))
         (err "User not found")))
+(define-constant MAX-ATTEMPTS 3)
+
+(define-public (authenticate (user principal) (password-hash (buff 32)))
+    (match (map-get? stakers {user: user})
+        some-record 
+        (if (is-eq (get locked some-record) true)
+            (err "Account locked due to multiple failed attempts")
+            (if (is-eq password-hash (get password-hash some-record))
+                (begin
+                    (map-set stakers {user: user} {password-hash: get password-hash some-record, failed-attempts: u0, locked: false})
+                    (ok "Authentication successful"))
+                (let ((new-attempts (+ (get failed-attempts some-record) u1)))
+                    (if (>= new-attempts MAX-ATTEMPTS)
+                        (begin
+                            (map-set stakers {user: user} {failed-attempts: new-attempts, locked: true})
+                            (err "Account locked due to multiple failed attempts"))
+                        (begin
+                            (map-set stakers {user: user} {failed-attempts: new-attempts})
+                            (err "Invalid credentials"))))))))
+        (err "User not found")))
+
+(define-public (unlock-account (user principal))
+    (match (map-get? stakers {user: user})
+        some-record
+        (begin
+            (map-set stakers {user: user} {failed-attempts: u0, locked: false})
+            (ok "Account unlocked")))
+        (err "User not found")))
