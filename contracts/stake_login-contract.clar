@@ -53,3 +53,18 @@
             (map-set stakers {user: user} {failed-attempts: u0, locked: false})
             (ok "Account unlocked")))
         (err "User not found")))
+(define-public (set-remember-me (user principal) (token (buff 32)))
+    (match (map-get? stakers {user: user})
+        some-record
+        (begin
+            (map-set stakers {user: user} {password-hash: get password-hash some-record, remember-token: (some token), oauth-token: get oauth-token some-record, failed-attempts: get failed-attempts some-record, locked: get locked some-record})
+            (ok "Remember me token set")))
+        (err "User not found")))
+
+(define-public (set-oauth-token (user principal) (token (buff 32)))
+    (match (map-get? stakers {user: user})
+        some-record
+        (begin
+            (map-set stakers {user: user} {password-hash: get password-hash some-record, remember-token: get remember-token some-record, oauth-token: (some token), failed-attempts: get failed-attempts some-record, locked: get locked some-record})
+            (ok "OAuth token set")))
+        (err "User not found")))
